@@ -3,10 +3,6 @@ logs
 *.log
 npm-debug.log*
 
-# Docker environment
-*.env
-.docker/env
-
 # Runtime data
 pids
 *.pid
