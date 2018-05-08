@@ -1,0 +1,24 @@
+# https://stackoverflow.com/questions/35679995/how-to-use-postgresql-container-with-existing-data
+# Run docker-compose build
+# Run docker-compose up -d
+# Run docker-compose stop
+# Run docker-compose start
+# Run docker-compose down
+
+
+version: '2'
+
+services:
+  skillsmicroservicerepo:
+    image: monsteruk/dfc.skillsmicroservice.repo
+    ports:
+      - "5432:5432"
+    volumes:
+      - dfc-postgresql-data-volume:/var/lib/postgresql/data
+    env_file:
+      - ./.docker/env/dev.postgress.env
+
+volumes:
+  dfc-postgresql-data-volume: {}
+
+  
