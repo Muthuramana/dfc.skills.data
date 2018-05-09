@@ -31,7 +31,8 @@ Notes.
 * You need node.js installed on your machine.
 
 1. cd PopulateOnetSkillsDB 
-2. node .\server.js
+2. npm install
+3. node .\server.js
 
 Once the node app has completed, the database will be populated.  You do not ned to run it again, unless you remove to the postgres container and later re-create it.
 
