@@ -13,6 +13,11 @@ var cn = {
 
 var db = pgp(cn);
 
+var processedSocCodes = 0;
+var socCodesInProgress = 0;
+var totalSocCodes = 0;
+var batchesStarted = 0;
+
 
 var socCodesToProcess = [];
 var stream = fs.createReadStream("./data/soc2010.csv");
@@ -22,14 +27,17 @@ var csvStream = csv()
         socCodesToProcess.push(data[0]);
     })
     .on("end", function(){
-        var i = socCodesToProcess.length % 10;
-        console.log("Contents of CSV file read.  We have the following block count: " + i);
-         for(count=0; count<i; count++) {
+        totalSocCodes = socCodesToProcess.length;
+        var blockCount = Math.ceil(totalSocCodes / 10);
+        console.log("Contents of CSV file read.  We have " + totalSocCodes + " soc codes, with the following block count: " + blockCount);
+         for(count=0; count<blockCount; count++) {
             var tmp = socCodesToProcess.splice(count,count+10);
             tmp.forEach(socCode => {
                processSoc(socCode);
             });
-        sleep(2000);
+        batchesStarted+=1;
+        printStats();
+        //sleep(500);
         }
     });
 
@@ -39,28 +47,29 @@ stream.pipe(csvStream);
 
 function processSoc(socCode) {
     console.log("Processing: " + socCode);
+    socCodesInProgress += 1;
+    printStats();
     loadOccupationsForSoc(socCode)
     .then(socOccs => {
-        console.log(socOccs);
+        console.log("Loaded occs for: " + socCode);
 
         socOccs.onetCodes.forEach((onetOcc) => {
             loadSkillsForOccupation(onetOcc.code)
             .then(skillsForOcc => {
-                console.log(skillsForOcc);
-                sleep(500);
+                console.log("Loaded skills for occ: " + onetOcc + " for soc: " + socCode);
+                //sleep(500);
                 if (skillsForOcc.scales.length > 0) {
                     var skills = skillsForOcc.scales[0].skills;
                     skills.forEach(skill => {
                         saveSkillsForOcc(socOccs.soc, onetOcc.code, skill.id, skill.name, skill.value)
                         .then(x => {
-                            console.log('Done save for skill: ' + skill.id + ' for occ: ' + onetOcc.code);
+                            console.log('Done save for skill: ' + skill.id + ' for occ: ' + onetOcc.code + " for soc:" + socOccs.soc);
                         });
                     });
                 }
             });
         });
     });
-
 }
 
 
@@ -119,4 +128,9 @@ function saveSkillsForOcc(soc, onetocccode, skillid, skillname, skillsrank) {
                 reject(error);
             });
     });
+}
+
+
+function printStats() {
+    console.log("totalSocCodes: " + totalSocCodes + " processedSocCodes: " + processedSocCodes + " socCodesInProgress" + socCodesInProgress + " batchesStarted: " + batchesStarted);
 }
