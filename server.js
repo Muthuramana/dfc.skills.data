@@ -2,6 +2,7 @@ var pgp = require('pg-promise')();
 var csv = require("fast-csv");
 const fs = require('fs');
 var RestClient = require('node-rest-client').Client;
+var sleep = require('thread-sleep');
 
 var cn = {
     host: 'localhost', 
@@ -13,43 +14,54 @@ var cn = {
 var db = pgp(cn);
 
 
-
+var socCodesToProcess = [];
 var stream = fs.createReadStream("./data/soc2010.csv");
  
 var csvStream = csv()
     .on("data", function(data){
-        console.log("Processing: " + data);
-        loadOccupationsForSoc(data[0])
-        .then(socOccs => {
-            console.log(socOccs);
-
-            socOccs.onetCodes.forEach((onetOcc) => {
-                saveSocToOcc(socOccs.soc, onetOcc.code, onetOcc.title)
-                .then(x => {
-                    loadSkillsForOccupation(onetOcc.code)
-                    .then(skillsForOcc => {
-                        console.log(skillsForOcc);
-                        if (skillsForOcc.scales.length > 0) {
-                            var skills = skillsForOcc.scales[0].skills;
-                            skills.forEach(skill => {
-                                saveSkillsForOcc(socOccs.soc, onetOcc.code, skill.id, skill.name, skill.value)
-                                .then(x => {
-                                    console.log('Done skills save: ' + onetOcc.code);
-                                });
-                            });
-                        }
-                    });
-                });
-
-            });
-        });
-
+        socCodesToProcess.push(data[0]);
     })
     .on("end", function(){
-         console.log("done");
+        var i = socCodesToProcess.length % 10;
+        console.log("Contents of CSV file read.  We have the following block count: " + i);
+         for(count=0; count<i; count++) {
+            var tmp = socCodesToProcess.splice(count,count+10);
+            tmp.forEach(socCode => {
+               processSoc(socCode);
+            });
+        sleep(2000);
+        }
     });
- 
+
+
 stream.pipe(csvStream);
+
+
+function processSoc(socCode) {
+    console.log("Processing: " + socCode);
+    loadOccupationsForSoc(socCode)
+    .then(socOccs => {
+        console.log(socOccs);
+
+        socOccs.onetCodes.forEach((onetOcc) => {
+            loadSkillsForOccupation(onetOcc.code)
+            .then(skillsForOcc => {
+                console.log(skillsForOcc);
+                sleep(500);
+                if (skillsForOcc.scales.length > 0) {
+                    var skills = skillsForOcc.scales[0].skills;
+                    skills.forEach(skill => {
+                        saveSkillsForOcc(socOccs.soc, onetOcc.code, skill.id, skill.name, skill.value)
+                        .then(x => {
+                            console.log('Done save for skill: ' + skill.id + ' for occ: ' + onetOcc.code);
+                        });
+                    });
+                }
+            });
+        });
+    });
+
+}
 
 
 function loadOccupationsForSoc(socCode) {
@@ -94,20 +106,6 @@ function standardGetHeader() {
     };
 
    return standardGetHeader;
-}
-
-
-function saveSocToOcc(socCode, onetOccCode, title) {
-    return new Promise( function pr(resolve,reject) {
-        resolve();
-        // db.none('INSERT INTO public.soc_onetocc(soccode, onetocccode, occtitle) VALUES ($1, $2, $3)', [socCode, onetOccCode, title])
-        //     .then(() => {
-        //         resolve();
-        //     })
-        //     .catch( (error) =>{
-        //         reject(error);
-        //     });
-    });
 }
 
 
