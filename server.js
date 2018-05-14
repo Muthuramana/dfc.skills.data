@@ -18,7 +18,8 @@ var socCodesInProgress = 0;
 var totalSocCodes = 0;
 var batchesStarted = 0;
 
-
+var client = new RestClient();
+var args = { headers: standardGetHeader() };
 var socCodesToProcess = [];
 var stream = fs.createReadStream("./data/soc2010.csv");
  
@@ -76,12 +77,7 @@ function processSoc(socCode) {
 function loadOccupationsForSoc(socCode) {
     return new Promise( function pr(resolve,reject) {
         console.log("Load for soc: " + socCode);
-        var uri = "http://api.lmiforall.org.uk/api/v1/o-net/soc2onet/" + socCode;
-
-        var client = new RestClient();
-        var args = {
-            headers: standardGetHeader()
-        };
+        var uri = "https://api.lmiforall.org.uk/api/v1/o-net/soc2onet/" + socCode;
 
         client.get(uri, args, (data, response) => {
             console.log("Retrived soc mapping: " + data);
@@ -93,12 +89,7 @@ function loadOccupationsForSoc(socCode) {
 function loadSkillsForOccupation(occCode) {
     return new Promise( function pr(resolve,reject) {
         console.log("Load for occ: " + occCode);
-        var uri = "http://api.lmiforall.org.uk/api/v1/o-net/skills/" + occCode;
-
-        var client = new RestClient();
-        var args = {
-            headers: standardGetHeader()
-        };
+        var uri = "https://api.lmiforall.org.uk/api/v1/o-net/skills/" + occCode;
 
         client.get(uri, args, (data, response) => {
             console.log("Retrived occ to skills mapping: " + data);
